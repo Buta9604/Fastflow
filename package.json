@@ -1,0 +1,29 @@
+{
+  "name": "flatflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FlatFlow monorepo",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "type-check": "pnpm -r type-check",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
