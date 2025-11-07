@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// FlatFlow Prisma Schema
+// SQLite database for flatmate expense and chore management
 
 generator client {
   provider = "prisma-client-js"
@@ -10,29 +10,258 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example models - customize based on your application needs
+// ============================================
+// ENUMS
+// ============================================
+
+enum SplitType {
+  EQUAL        // Split equally among all members
+  PERCENTAGE   // Split by percentage
+  EXACT        // Exact amounts per member
+  SHARES       // Split by shares (e.g., 1:2:3)
+}
+
+enum ExpenseStatus {
+  PENDING      // Awaiting approval or payment
+  SETTLED      // All payments completed
+  PARTIAL      // Some payments completed
+  CANCELLED    // Expense cancelled
+}
+
+enum ChoreFrequency {
+  ONCE         // One-time chore
+  DAILY        // Repeats daily
+  WEEKLY       // Repeats weekly
+  BIWEEKLY     // Every two weeks
+  MONTHLY      // Repeats monthly
+}
+
+enum GroupRole {
+  OWNER        // Group creator, full permissions
+  ADMIN        // Can manage members and settings
+  MEMBER       // Standard member
+}
+
+enum InviteStatus {
+  PENDING      // Invite sent, awaiting response
+  ACCEPTED     // Invite accepted
+  DECLINED     // Invite declined
+  EXPIRED      // Invite expired
+}
+
+enum PaymentStatus {
+  PENDING      // Payment initiated
+  COMPLETED    // Payment confirmed
+  FAILED       // Payment failed
+}
+
+// ============================================
+// MODELS
+// ============================================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  posts     Post[]
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String
+  avatarUrl     String?
+  passwordHash  String?         // For future auth implementation
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relations
+  groupMemberships   GroupMember[]
+  createdGroups      Group[]           @relation("GroupCreator")
+  paidExpenses       Expense[]         @relation("ExpensePayer")
+  expenseShares      ExpenseShare[]
+  choreAssignments   ChoreAssignment[]
+  sentInvites        Invite[]          @relation("InviteSender")
+  receivedInvites    Invite[]          @relation("InviteRecipient")
+  sentPayments       Payment[]         @relation("PaymentFrom")
+  receivedPayments   Payment[]         @relation("PaymentTo")
 
   @@map("users")
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  currency    String        @default("USD")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  @@index([authorId])
-  @@map("posts")
+  // Relations
+  creatorId   String
+  creator     User          @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  expenses    Expense[]
+  chores      Chore[]
+  invites     Invite[]
+
+  @@index([creatorId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id          String      @id @default(cuid())
+  role        GroupRole   @default(MEMBER)
+  joinedAt    DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId     String
+  group       Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("group_members")
+}
+
+model Expense {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  amount      Float          // Total amount in cents or base currency unit
+  currency    String         @default("USD")
+  category    String?        // e.g., "Groceries", "Utilities", "Rent"
+  date        DateTime       @default(now())
+  receiptUrl  String?
+  splitType   SplitType      @default(EQUAL)
+  status      ExpenseStatus  @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  groupId     String
+  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidById    String
+  paidBy      User           @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+  shares      ExpenseShare[]
+  payments    Payment[]
+
+  @@index([groupId])
+  @@index([paidById])
+  @@index([date])
+  @@index([status])
+  @@map("expenses")
+}
+
+model ExpenseShare {
+  id          String   @id @default(cuid())
+  amount      Float    // Amount owed by this user (in cents or base currency unit)
+  percentage  Float?   // For PERCENTAGE split type
+  shares      Int?     // For SHARES split type
+  isPaid      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  expenseId   String
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([expenseId])
+  @@index([userId])
+  @@index([isPaid])
+  @@map("expense_shares")
+}
+
+model Chore {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  frequency   ChoreFrequency  @default(ONCE)
+  points      Int             @default(1)  // Reward/tracking points
+  dueDate     DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  groupId     String
+  group       Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignments ChoreAssignment[]
+
+  @@index([groupId])
+  @@index([dueDate])
+  @@map("chores")
+}
+
+model ChoreAssignment {
+  id           String    @id @default(cuid())
+  assignedDate DateTime  @default(now())
+  completedAt  DateTime?
+  isCompleted  Boolean   @default(false)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  choreId      String
+  chore        Chore     @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([choreId])
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([assignedDate])
+  @@map("chore_assignments")
+}
+
+model Invite {
+  id          String       @id @default(cuid())
+  email       String
+  token       String       @unique
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  groupId     String
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User         @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String?      // Null if user doesn't exist yet
+  recipient   User?        @relation("InviteRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@map("invites")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amount      Float         // Amount in cents or base currency unit
+  currency    String        @default("USD")
+  status      PaymentStatus @default(PENDING)
+  method      String?       // e.g., "Cash", "Venmo", "Bank Transfer"
+  notes       String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  expenseId   String?       // Optional: link to specific expense
+  expense     Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  fromUserId  String
+  fromUser    User          @relation("PaymentFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId    String
+  toUser      User          @relation("PaymentTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
+  @@index([paidAt])
+  @@map("payments")
 }
