@@ -14,16 +14,23 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && pnpm db:seed",
     "db:studio": "prisma studio"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "prettier": "^3.1.1",
+    "prisma": "^5.8.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
 }
