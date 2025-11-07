@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'ui'
+import { SessionProvider } from '@/components/SessionProvider'
 import 'ui/styles'
 import './globals.css'
 
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
-        <ThemeProvider defaultAccent="sage">
-          {children}
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider defaultAccent="sage">
+            {children}
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )
