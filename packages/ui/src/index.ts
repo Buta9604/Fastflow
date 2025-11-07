@@ -34,5 +34,9 @@ export type { SidebarProps, SidebarItemProps, SidebarSectionProps } from './Side
 export { ThemeProvider, useTheme } from './ThemeProvider'
 export { ThemeSwitcher } from './ThemeSwitcher'
 
+// Toast
+export { ToastProvider, useToast } from './Toast'
+export type { Toast, ToastType } from './Toast'
+
 // Auth
 export { SignInCard } from './SignInCard'
