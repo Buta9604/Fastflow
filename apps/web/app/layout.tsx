@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { ThemeProvider } from 'ui'
+import 'ui/styles'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'FlatFlow',
-  description: 'A modern full-stack application',
+  description: 'A modern full-stack application built with Next.js, Prisma, and TypeScript',
 }
 
 export default function RootLayout({
@@ -15,8 +21,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+        <ThemeProvider defaultAccent="sage">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
