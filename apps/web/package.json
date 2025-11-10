@@ -11,6 +11,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "clean": "rm -rf .next .turbo node_modules"
   },
   "dependencies": {
@@ -31,6 +34,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/nodemailer": "^6.4.14",
     "@types/jest": "^29.5.11",
+    "@playwright/test": "^1.40.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.1.0",
